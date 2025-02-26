@@ -1,45 +1,47 @@
-SAMPLES = ["SRR2584403","SRR2584404","SRR2584405"]
-
 rule all:
     input:
-        expand("{sample}_quast.4000000",sample=SAMPLES),
-        expand("{sample}_annot.4000000",sample=SAMPLES)
-
+        "SRR2584857_quast.4000000", # 4m lines
+        "SRR2584857_annot.4000000",
+        "SRR2584857_quast.3000000", # 3m lines
+        "SRR2584857_annot.3000000",
+        "SRR2584857_quast.2000000", # 2m lines
+        "SRR2584857_annot.2000000",
 
 rule subset_reads:
     input:
-        "{sample}_1.fastq.gz",
+        "{sample}.fastq.gz",
     output:
-        "{sample}_1.{subset,\d+}.fastq.gz"
+        "{sample}.{subset,\d+}.fastq.gz"
     shell: """
         gunzip -c {input} | head -{wildcards.subset} | gzip -9c > {output} || true
     """
 
 rule annotate:
     input:
-        "{sample}-assembly.{subset}.fa"
+        "SRR2584857-assembly.{subset}.fa"
     output:
-        directory("{sample}_annot.{subset}")
+        directory("SRR2584857_annot.{subset}")
     shell: """
        prokka --prefix {output} {input}                                       
     """
 
 rule assemble:
     input:
-        r1 = "{sample}_1.{subset}.fastq.gz"
+        r1 = "SRR2584857_1.{subset}.fastq.gz",
+        r2 = "SRR2584857_2.{subset}.fastq.gz"
     output:
-        dir = directory("{sample}_assembly.{subset}"),
-        assembly = "{sample}-assembly.{subset}.fa"
+        dir = directory("SRR2584857_assembly.{subset}"),
+        assembly = "SRR2584857-assembly.{subset}.fa"
     shell: """
-       megahit -r {input.r1} -f -m 10e9 -t 4 -o {output.dir}     
+       megahit -1 {input.r1} -2 {input.r2} -f -m 5e9 -t 4 -o {output.dir}     
        cp {output.dir}/final.contigs.fa {output.assembly}                     
     """
 
 rule quast:
     input:
-        "{sample}-assembly.{subset}.fa"
+        "SRR2584857-assembly.{subset}.fa"
     output:
-        directory("{sample}_quast.{subset}")
+        directory("SRR2584857_quast.{subset}")
     shell: """                                                                
        quast {input} -o {output}                                              
     """
